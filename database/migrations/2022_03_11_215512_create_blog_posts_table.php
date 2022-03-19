@@ -16,8 +16,13 @@ class CreateBlogPostsTable extends Migration
         Schema::create('blog_posts', function (Blueprint $table) {
             $table->increments('id');
             $table->timestamps();
+            // if (env('DB_CONNECTION') == 'sqlite_testing')) {
+            //   $table->string('title')->default('');
+            //   $table->text('content')->default('');
+            // } else {
             $table->string('title');
             $table->text('content');
+            // }
         });
     }
 

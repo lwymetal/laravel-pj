@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BlogPost;
 use App\Models\Comment;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -19,15 +20,21 @@ class PostTest extends TestCase
     }
 
     public function testSee1PostWhen1Exists() {
+      $user = $this->user();
+      $this->actingAs($user);
+
       $post = $this->createDummyPost();
       $response = $this->get('/posts');
-      $response->assertSeeText('Post title');
+      $response->assertSeeText($post->title);
       $response->assertSeeText('No comments');
 
-      $this->assertDatabaseHas('blog_posts', ['title' => 'Post title']);
+      $this->assertDatabaseHas('blog_posts', ['title' => $post->title]);
     }
 
     public function testSee1PostWithComments() {
+      $user = $this->user();
+      $this->actingAs($user);
+
       $post = $this->createDummyPost();
       $comments = Comment::factory()->count(3)->create(['blog_post_id' => $post->id]);
       $response = $this->get('/posts');
@@ -35,9 +42,12 @@ class PostTest extends TestCase
     }
 
     public function testStoreValid() {
+      $user = $this->user();
+
       $params = ['title' => 'Valid title', 'content' => 'Valid content 10+ chars'];
 
-      $this->post('/posts', $params)
+      $this->actingAs($user)
+        ->post('/posts', $params)
         ->assertStatus(302)
         ->assertSessionHas('status');
 
@@ -45,9 +55,12 @@ class PostTest extends TestCase
     }
 
     public function testStoreFail() {
+      $user = $this->user();
+
       $params = ['title' => 'x', 'content' => 'x'];
 
-      $this->post('/posts', $params)
+      $this->actingAs($user)
+        ->post('/posts', $params)
         ->assertStatus(302)
         ->assertSessionHas('errors');
 
@@ -57,9 +70,13 @@ class PostTest extends TestCase
     }
 
     public function testUpdateValid() {
-      $post = $this->createDummyPost();
+      $user = $this->user();
+      $this->actingAs($user);
 
-      $this->assertDatabaseHas('blog_posts', ['id' => $post->id, 'title' => 'Post title']); // tutorial has $post->toArray() but timestamp comparison fails
+      $post = $this->createDummyPost($user->id);
+
+      $this->assertDatabaseHas('blog_posts', ['id' => $post->id, 'title' => $post->title]); 
+      // tutorial has $post->toArray() but timestamp comparison fails
 
       $params = ['title' => 'Updated title', 'content' => 'Updated content'];
 
@@ -73,17 +90,22 @@ class PostTest extends TestCase
     }
 
     public function testDeletePost() {
-      $post = $this->createDummyPost();
-      $this->assertDatabaseHas('blog_posts', ['id' => $post->id, 'title' => 'Post title']); 
+      $user = $this->user();
+
+      $this->actingAs($user);
+
+      $post = $this->createDummyPost($user->id);
+      $this->assertDatabaseHas('blog_posts', ['id' => $post->id, 'title' => $post->title]); 
       $this->delete('/posts/'.$post->id)
         ->assertStatus(302)
         ->assertSessionHas('status');
 
       $this->assertEquals(session('status'), 'Post deleted');
-      $this->assertDatabaseMissing('blog_posts', ['id' => $post->id, 'title' => 'Post title']); 
+      // $this->assertDatabaseMissing('blog_posts', ['id' => $post->id, 'title' => $post->title]); 
+      $this->assertSoftDeleted('blog_posts', ['id' => $post->id, 'title' => $post->title]);
     }
 
-    private function createDummyPost() {
+    private function createDummyPost($user_id = null) {
       // $post = new BlogPost();
       // $post->title = 'Post title';
       // $post->content = 'Post content';
@@ -91,7 +113,7 @@ class PostTest extends TestCase
 
       // return BlogPost::factory()->newtitle()->create();
 
-      return BlogPost::factory()->create();
+      return BlogPost::factory()->create(['user_id' => $user_id ?? $this->user()->id]);
 
       // return $post;
     }

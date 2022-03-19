@@ -13,8 +13,11 @@ class CommentFactory extends Factory
      */
     public function definition()
     {
+
+      $minutesAgo = rand(5, 5000);
         return [
-          'content' => $this->faker->text(30)
+          'content' => $this->faker->text(50),
+          'created_at' => now()->subMinutes($minutesAgo)
         ];
     }
 }

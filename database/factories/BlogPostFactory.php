@@ -13,9 +13,12 @@ class BlogPostFactory extends Factory
      */
     public function definition()
     {
+      $hoursAgo = rand(1, 3000);
         return [
           'title' => $this->faker->sentence(8),
-          'content' => $this->faker->paragraphs(3, true)
+          'content' => $this->faker->paragraphs(3, true),
+          'created_at' => now()->subHours($hoursAgo),
+          'updated_at' => null
         ];
     }
 

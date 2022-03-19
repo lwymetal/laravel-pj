@@ -7,4 +7,12 @@
 
 <p>Here is contact text</p>
 
+@can('home.secret')
+  <p>
+    <a href="{{ route('secret') }}">
+      Sekrit page
+    </a>
+  </p>
+@endcan
+
 @endsection

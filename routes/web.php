@@ -25,13 +25,18 @@ use Illuminate\Support\Facades\Route;
 //   return view('home.index', []);
 // })->name('home.index');
 // Route::view('/', 'home.index')->name('home.index');
-Route::get('/', [HomeController::class, 'home'])->name('home.index');
+Route::get('/', [HomeController::class, 'home'])
+  ->name('home.index');
+  // ->middleware('auth');
 
 // Route::get('/contact', function() {
 //   return view('home.contact', []);
 // })->name('home.contact');
 // Route::view('/contact', 'home.contact')->name('home.contact');
 Route::get('/contact', [HomeController::class, 'contact'])->name('home.contact');
+Route::get('/secret', [HomeController::class, 'secret'])
+  ->name('secret')
+  ->middleware('can:home.secret'); // works same as in blade template
 
 Route::get('/single', AboutController::class); // __invoke - single action
 
@@ -94,5 +99,4 @@ Route::get('/recent-posts/{days_ago?}', function($daysAgo = 20) {
 //     return response()->download(public_path('/images/potato.jpeg'), '1potato.jpg');
 //   })->name('download');
 
-
-
+Auth::routes();
