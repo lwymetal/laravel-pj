@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\ViewComposers\ActivityComposer;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 
@@ -24,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-      
+      // Blade::componentNamespace('App\View\Components', 'tags');  // not working ... ???
+
+      // view()->composer('*', ActivityComposer::class); // all
+      view()->composer(['posts.index', 'posts.show'], ActivityComposer::class);
+
     }
 }

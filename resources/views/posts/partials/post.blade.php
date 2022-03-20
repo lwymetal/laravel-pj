@@ -12,6 +12,10 @@
 <p class="text-muted">
   {{ $post->updated_at > $post->created_at ? 'Updated' : 'Added'}} {{ $post->created_at->diffForHumans() }} by {{ $post->user->name }}
 </p>
+
+@component('components.tags', ['tags' => $post->tags])
+@endcomponent
+
 @if ($post->comments_count) 
   <p>{{ $post->comments_count }} comments</p>
 @else 
@@ -27,13 +31,15 @@
   @cannot('delete', $post)
   <input type="submit" value="Delete" class="btn btn-primary" disabled>
   @endcannot
-  @if (!$post->trashed())
-    @can('delete', $post)
-    <form class="d-inline" action="{{ route('posts.destroy', ['post' => $post->id]) }}" method="POST">
-    @csrf
-    @method('DELETE')
-    <input type="submit" value="Delete" class="btn btn-primary">
-    </form>
-    @endcan
-  @endif
+  @auth
+    @if (!$post->trashed())
+      @can('delete', $post)
+      <form class="d-inline" action="{{ route('posts.destroy', ['post' => $post->id]) }}" method="POST">
+      @csrf
+      @method('DELETE')
+      <input type="submit" value="Delete" class="btn btn-primary">
+      </form>
+      @endcan
+    @endif
+  @endauth
 </div>  

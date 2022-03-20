@@ -6,8 +6,10 @@ use App\Http\Requests\StorePost;
 use App\Models\BlogPost;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
-// use Illuminate\Support\Facades\DB;
+// use Illuminate\Support\Facades\Redis;
+use Barryvdh\Debugbar\Facades\Debugbar;
 
 class PostsController extends Controller
 {
@@ -21,25 +23,33 @@ class PostsController extends Controller
 
     /**
      * Display a listing of the resource.
-     *
+     * 
      * @return \Illuminate\Http\Response
      */
     public function index()
     {
-      // DB::connection()->enableQueryLog();
-      // $posts = BlogPost::with('comments')->get();
-      // foreach ($posts as $post) {
-      //   foreach ($post->comments as $comment) {
-      //     echo $comment->content;
-      //   }
-      // }
-      // dd(DB::getQueryLog());
+      Debugbar::info('posts controller index');
+
+      // $posts = Cache::remember('posts', now()->addSeconds(10), function() {
+      //   return BlogPost::latest()->withCount('comments')->with('user')->get();
+      // });
+
+      // $mostCommented = Cache::tags(['blog-post'])->remember('blog-post-commented', now()->addSeconds(10), function() {
+      //   return BlogPost::mostCommented()->take(5)->get();
+      // });
+      // $mostActive = Cache::remember('users-most-active', now()->addSeconds(10), function() {
+      //   return User::withMostBlogPosts()->take(5)->get();
+      // });
+      // $mostActiveLastMonth = Cache::remember('users-most-active-last-month', now()->addSeconds(10), function() {
+      //   return User::withMostBlogPostsLastMonth()->take(5)->get();
+      // });
+
       return view(
         'posts.index', 
-        ['posts' => BlogPost::latest()->withCount('comments')->get(),
-          'mostCommented' => BlogPost::mostCommented()->take(5)->get(),
-          'mostActive' => User::withMostBlogPosts()->take(5)->get(),
-          'mostActiveLastMonth' => User::withMostBlogPostsLastMonth()->take(5)->get()
+        ['posts' => BlogPost::latest()->withCount('comments')->with('user')->with('tags')->get(),
+          // 'mostCommented' => $mostCommented,  // replaced by ViewComposers/ActivityComposer
+          // 'mostActive' => $mostActive,
+          // 'mostActiveLastMonth' => $mostActiveLastMonth
         ]
       );
     }
@@ -81,7 +91,46 @@ class PostsController extends Controller
     public function show($id)
     {
       // abort_if(!isset($this->posts[$id]), 404);
-      return view('posts.show', ['post' => BlogPost::with('comments')->findOrFail($id)]);
+      // $blogPost = Cache::remember('blog-post-{$id}', 60, function() use ($id) {
+      //   return BlogPost::with('comments')->findOrFail($id);
+      // });
+      $blogPost = Cache::tags(['blog-post'])->remember('blog-post-{$id}', 60, function() use ($id) {
+        return BlogPost::with('comments')->with('tags')->with('user')->findOrFail($id);
+      });
+
+      $sessionId = session()->getId();
+      $counterKey = 'blog-post-{$id}-counter';
+      $usersKey = 'blog-post-{$id}-users';
+
+      $users = Cache::tags(['blog-post'])->get($usersKey, []);
+      $usersUpdate = [];
+      $diff = 0;
+      $now = now();
+
+      foreach ($users as $session => $lastVisit) {
+        if ($now->diffInMinutes($lastVisit) >= 1) {
+          $diff--;
+        } else {
+          $usersUpdate[$session] = $lastVisit;
+        }
+      }
+
+      if (!array_key_exists($sessionId, $users) || $now->diffInMinutes($users[$sessionId]) >= 1) {
+        $diff++;
+      }
+
+      $usersUpdate[$sessionId] = $now;
+      Cache::tags(['blog-post'])->forever($usersKey, $usersUpdate);
+      if (!Cache::tags(['blog-post'])->has($counterKey)) {
+        Cache::tags(['blog-post'])->forever($counterKey, 1); // count first user 
+      } else {
+        Cache::tags(['blog-post'])->increment($counterKey, $diff); // diff is 1 only if user is new/refreshed
+      // cache increment can be negative
+      }
+
+      $counter = Cache::tags(['blog-post'])->get($counterKey);
+
+      return view('posts.show', ['post' => $blogPost, 'counter' => $counter]);
     }
 
     /**
