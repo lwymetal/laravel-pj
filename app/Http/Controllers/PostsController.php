@@ -4,12 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePost;
 use App\Models\BlogPost;
+use App\Models\Image;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 // use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\Debugbar\Facades\Debugbar;
+use App\Events\BlogPostCreated;
+// use App\Services\Counter; // change service to contract
+// use App\Contracts\CounterContract;  // change from dependency injection to facade
+use App\Facades\CounterFacade;
 
 class PostsController extends Controller
 {
@@ -17,6 +23,7 @@ class PostsController extends Controller
   public function __construct() {
     $this->middleware('auth')
       ->only(['create', 'store', 'edit', 'update', 'destroy']);
+
   }
     /* php artisan make:controller PostsController --resource
     As a resource controller I am made with CRUD routes in place. */ 
@@ -46,7 +53,8 @@ class PostsController extends Controller
 
       return view(
         'posts.index', 
-        ['posts' => BlogPost::latest()->withCount('comments')->with('user')->with('tags')->get(),
+        // ['posts' => BlogPost::latest()->withCount('comments')->with('user')->with('tags')->get(),
+        ['posts' => BlogPost::latestWithRelations()->get(),
           // 'mostCommented' => $mostCommented,  // replaced by ViewComposers/ActivityComposer
           // 'mostActive' => $mostActive,
           // 'mostActiveLastMonth' => $mostActiveLastMonth
@@ -77,6 +85,30 @@ class PostsController extends Controller
       $validated['user_id'] = $request->user()->id;
       $post = BlogPost::create($validated);
 
+
+      if ($request->hasFile('thumbnail')) {
+        $path = $request->file('thumbnail')->store('thumbnails');
+        $post->image()->save(
+          Image::make(['path' => $path])
+        );
+        // $file = $request->file('thumbnail');
+        // dump($file);
+        // dump($file->getClientMimeType());
+        // dump($file->getClientOriginalExtension());
+        // dump(Storage::disk('public')->putFile('thumbnails', $file)); // shortcut below
+        // dump($file->store('thumbnails')); // folder name
+
+        // $name1 = $file->storeAs('thumbnails', $post->id . '.' . $file->guessExtension());
+        // // aka Storage::putFileAs('folder', $file, 'filename');
+        // $name2 = Storage::disk('local')->putFileAs('local-img', $file, $post->id . '.' . $file->guessExtension());
+
+        // dump(Storage::url($name1));
+        // dump(Storage::disk('local')->url($name2));
+
+      }
+
+      event(new BlogPostCreated($post));
+
       $request->session()->flash('status', 'Post created');
 
       return redirect()->route('posts.show', ['post' => $post->id]);
@@ -94,43 +126,63 @@ class PostsController extends Controller
       // $blogPost = Cache::remember('blog-post-{$id}', 60, function() use ($id) {
       //   return BlogPost::with('comments')->findOrFail($id);
       // });
-      $blogPost = Cache::tags(['blog-post'])->remember('blog-post-{$id}', 60, function() use ($id) {
-        return BlogPost::with('comments')->with('tags')->with('user')->findOrFail($id);
+
+
+      //
+      // ********** For tag interpretation use DOUBLE QUOTES or it is processed as literal **********
+      // 
+
+      $blogPost = Cache::tags(['blog-post'])->remember("blog-post-{$id}", 60, function() use($id) {
+        return BlogPost::with('comments', 'tags', 'user', 'comments.user')
+          // ->with('tags')
+          // ->with('user')
+          // ->with('comments.user') // nested relationship
+          ->findOrFail($id);
       });
 
-      $sessionId = session()->getId();
-      $counterKey = 'blog-post-{$id}-counter';
-      $usersKey = 'blog-post-{$id}-users';
+      // counter/cache/tags moved to Counter ////////
 
-      $users = Cache::tags(['blog-post'])->get($usersKey, []);
-      $usersUpdate = [];
-      $diff = 0;
-      $now = now();
+      // $sessionId = session()->getId();
+      // $counterKey = "blog-post-{$id}-counter";
+      // $usersKey = "blog-post-{$id}-users";
 
-      foreach ($users as $session => $lastVisit) {
-        if ($now->diffInMinutes($lastVisit) >= 1) {
-          $diff--;
-        } else {
-          $usersUpdate[$session] = $lastVisit;
-        }
-      }
+      // $users = Cache::tags(['blog-post'])->get($usersKey, []);
+      // $usersUpdate = [];
+      // $diff = 0;
+      // $now = now();
 
-      if (!array_key_exists($sessionId, $users) || $now->diffInMinutes($users[$sessionId]) >= 1) {
-        $diff++;
-      }
+      // foreach ($users as $session => $lastVisit) {
+      //   if ($now->diffInMinutes($lastVisit) >= 1) {
+      //     $diff--;
+      //   } else {
+      //     $usersUpdate[$session] = $lastVisit;
+      //   }
+      // }
 
-      $usersUpdate[$sessionId] = $now;
-      Cache::tags(['blog-post'])->forever($usersKey, $usersUpdate);
-      if (!Cache::tags(['blog-post'])->has($counterKey)) {
-        Cache::tags(['blog-post'])->forever($counterKey, 1); // count first user 
-      } else {
-        Cache::tags(['blog-post'])->increment($counterKey, $diff); // diff is 1 only if user is new/refreshed
-      // cache increment can be negative
-      }
+      // if (!array_key_exists($sessionId, $users) || $now->diffInMinutes($users[$sessionId]) >= 1) {
+      //   $diff++;
+      // }
 
-      $counter = Cache::tags(['blog-post'])->get($counterKey);
+      // $usersUpdate[$sessionId] = $now;
+      // Cache::tags(['blog-post'])->forever($usersKey, $usersUpdate);
+      // if (!Cache::tags(['blog-post'])->has($counterKey)) {
+      //   Cache::tags(['blog-post'])->forever($counterKey, 1); // count first user 
+      // } else {
+      //   Cache::tags(['blog-post'])->increment($counterKey, $diff); // diff is 1 only if user is new/refreshed
+      // // cache increment can be negative
+      // }
 
-      return view('posts.show', ['post' => $blogPost, 'counter' => $counter]);
+      // $counter = Cache::tags(['blog-post'])->get($counterKey);
+
+      //////////////
+
+      // $counter = resolve(Counter::class);
+
+      return view('posts.show', [
+        'post' => $blogPost, 
+        // 'counter' => $this->counter->increment("blog-post-{$id}", ['blog-post'])
+        'counter' => CounterFacade::increment("blog-post-{$id}", ['blog-post'])
+      ]);
     }
 
     /**
@@ -164,7 +216,20 @@ class PostsController extends Controller
       // };
       $this->authorize($post);
       $validated = $request->validated();
-      $post->fill($validated)->save();
+      $post->fill($validated);
+      if ($request->hasFile('thumbnail')) {
+        $path = $request->file('thumbnail')->store('thumbnails');
+        if ($post->image) {
+          Storage::delete($post->image->path);
+          $post->image->path = $path;
+          $post->image->save();
+        } else {
+          $post->image()->save(
+            Image::make(['path' => $path])
+          ); 
+        }
+      }
+      $post->save();
       $request->session()->flash('status', 'Post updated');
       return redirect()->route('posts.show', ['post' => $post->id]);
     }

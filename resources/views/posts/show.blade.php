@@ -6,37 +6,53 @@
 
 <div class="row">
   <div class="col-8">
-
-    <h1>{{ $post->title }} 
+    @if ($post->image)
+      <div style="background-image: url('{{  $post->image->url() }}'); min-height: 500px; color: white; text-align: center; background-attachment: fixed; 
+        background-repeat: no-repeat">
+        <h1 style="padding-top: 100px; text-shadow: 1px 2px #000">
+    @else
+      <h1>
+    @endif
+      {{ $post->title }} 
     @component('components.badge', ['type' => 'success', 'show' => (now()->diffInMinutes($post->created_at) < 999)])
       New
     @endcomponent
+    @if ($post->image)
+        <!-- <img src="http://laravelpj:8888/storage/{{ $post->image->path }}" /> -->
+        <!-- <img src="{{ asset($post->image->path) }}" /> doesn't work because of symbolic storage link -->
+        <!-- <img src="{{ Storage::url($post->image->path) }}" /> -->
+        <!-- <img src="{{ $post->image->url() }}" /> -->
+        </h1>
+      </div>
+    @else
     </h1>
-    <p>{{ $post->content }}</p>
-    <p>Published {{ $post->created_at->diffForHumans() }} by {{ $post->user->name }}
-    @if ($post->updated_at > $post->created_at)
-    (Updated {{ $post->updated_at->diffForHumans() }})
     @endif
-    </p>
+    <p>{{ $post->content }}</p>
+
+    @component('components.updated', [
+      'created' => $post->created_at, 
+      'updated' => $post->updated_at,
+      'id' => $post->user->id, 
+      'name' => $post->user->name
+      ])
+    @endcomponent
 
     @component('components.tags', ['tags' => $post->tags])
     @endcomponent
 
     <p>Current readers: {{ $counter }}</p>
 
-    <h4>Comments</h4>
+    <p>(Translation test) {{ trans_choice('messages.people.reading', $counter) }} </p>
 
-    @include('comments.form')
+    <h4>{{ __('Comments') }}</h4>
 
-    @forelse($post->comments as $comment)
-    <p>
-      {{ $comment->content }}
-      <br>
-      <small class="text-muted">{{ $comment->created_at->diffForHumans() }} by {{ $comment->user->name }}</small>
-    </p>
-    @empty
-    <p>No comments</p>
-    @endforelse
+    @component('components.comment-form', ['route' => route('posts.comments.store', ['post' => $post->id])])
+    @endcomponent
+
+
+    @component('components.comment-list', ['comments' => $post->comments])
+    @endcomponent
+
   </div>
   <div class="col-4">
     @include('posts.partials.activity')

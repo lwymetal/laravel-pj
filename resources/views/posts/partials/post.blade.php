@@ -9,18 +9,23 @@
   </del>
   @endif
 </h3>
-<p class="text-muted">
-  {{ $post->updated_at > $post->created_at ? 'Updated' : 'Added'}} {{ $post->created_at->diffForHumans() }} by {{ $post->user->name }}
-</p>
+
+@component('components.updated', [
+  'created' => $post->created_at, 
+  'updated' => $post->updated_at,
+  'id' => $post->user->id, 
+  'name' => $post->user->name
+  ])
+@endcomponent
 
 @component('components.tags', ['tags' => $post->tags])
 @endcomponent
 
-@if ($post->comments_count) 
-  <p>{{ $post->comments_count }} comments</p>
-@else 
-  <p>No comments</p>
-@endif
+
+<p>
+{{ trans_choice('messages.comments', $post->comments_count) }}
+</p>
+
 <div class="mb-3">
   @cannot('update', $post)
   <input type="submit" class="btn btn-primary" value="Edit" disabled>

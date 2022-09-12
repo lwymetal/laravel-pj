@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PostCommentController;
 use App\Http\Controllers\PostsController;
 use App\Http\Controllers\PostTagController;
+use App\Http\Controllers\UserCommentController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -102,5 +105,16 @@ Route::get('/recent-posts/{days_ago?}', function($daysAgo = 20) {
 //   Route::get('download', function() use ($posts) {
 //     return response()->download(public_path('/images/potato.jpeg'), '1potato.jpg');
 //   })->name('download');
+
+Route::resource('posts.comments', PostCommentController::class)->only(['index', 'store']);
+
+Route::resource('users', UserController::class)->only(['show', 'edit', 'update']);
+
+Route::resource('users.comments', UserCommentController::class)->only(['store']);
+
+Route::get('mailable', function() {
+  $comment = App\Models\Comment::find(1);
+  return new App\Mail\CommentPostedMarkdown($comment);
+ });
 
 Auth::routes();

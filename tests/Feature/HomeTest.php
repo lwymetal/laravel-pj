@@ -17,13 +17,13 @@ class HomeTest extends TestCase
     {
       $response = $this->get('/');
       $response->assertSeeText('Hello World');
-      $response->assertSeeText('Here is text');
+      $response->assertSeeText('Welcome');
     }
 
     public function testContactPageWorksCorrectly() {
       $response = $this->get('/contact');
       $response->assertSeeText('Contact');
-      $response->assertSeeText('Here is contact text');
+      $response->assertSeeText('Hello this is contact!');
     }
 
 }

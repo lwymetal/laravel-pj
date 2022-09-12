@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
+// use App\Models\BlogPost; // not needed, same namespace
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
+
+    public const LOCALES = ['en' => 'English', 'es' => 'Español', 'de' => 'Deutsch'];
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +34,12 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'email', 
+        'email_verified_at',
+        'created_at',
+        'updated_at',
+        'is_admin',
+        'locale'
     ];
 
     /**
@@ -46,8 +55,16 @@ class User extends Authenticatable
       return $this->hasMany('App\Models\BlogPost');
     }
 
-    public function coments() {
+    public function comments() {
       return $this->hasMany('App\Models\Comment');
+    }
+
+    public function commentsOn() {
+      return $this->morphMany('App\Models\Comment', 'commentable')->latest();
+    }
+
+    public function image() {
+      return $this->morphOne('App\Models\Image', 'imageable');
     }
 
     public function scopeWithMostBlogPosts(Builder $query) {
@@ -61,4 +78,16 @@ class User extends Authenticatable
       ->having('blog_posts_count', '>=', 2)
       ->orderBy('blog_posts_count', 'desc');
     }
+
+    public function scopeThatHasCommentedOnPost(Builder $query, BlogPost $post) {
+      $query->whereHas('comments', function($query) use ($post) {
+        return $query->where('commentable_id', '=', $post->id)
+          ->where('commentable_type', '=', BlogPost::class);
+      });
+    }
+
+    public function scopeThatIsAdmin(Builder $query) {
+      return $query->where('is_admin', true);
+    }
+
 }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'All Posts')
+@section('title', __('Blog Posts'))
 
 @section('content')
 
@@ -11,7 +11,7 @@
   @forelse($posts as $key => $post)
     @include('posts.partials.post')
   @empty
-    <div>No posts found.</div>
+    <div>{{ __('No blog posts yet') }}</div>
   @endforelse
   </div>
   <div class="col-4">

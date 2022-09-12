@@ -14,6 +14,11 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    RedirectMatch "^/(en|de|es)/?(.*)?" "/$2?locale=$1" 
+    # 2nd group; 1st group
+    # same line comments will break this
+    # 
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f

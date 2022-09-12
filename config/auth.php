@@ -45,6 +45,8 @@ return [
             'driver' => 'token',
             'provider' => 'users',
             'hash' => false,
+            'input_key' => 'api_token', // default name
+            // 'input_key' => 'desired_input_key_name'
         ],
     ],
 

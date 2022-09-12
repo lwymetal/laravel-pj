@@ -16,7 +16,7 @@ class PostTest extends TestCase
     public function testNoPostsFoundWhenDBEmpty()
     {
         $response = $this->get('/posts');
-        $response->assertSeeText('No posts found');
+        $response->assertSeeText('No blog posts yet');
     }
 
     public function testSee1PostWhen1Exists() {
@@ -36,7 +36,11 @@ class PostTest extends TestCase
       $this->actingAs($user);
 
       $post = $this->createDummyPost();
-      $comments = Comment::factory()->count(3)->create(['blog_post_id' => $post->id]);
+      $comments = Comment::factory()->count(3)->create([
+        'user_id' => $user->id,
+        'commentable_id' => $post->id, 
+        'commentable_type' => 'App\Models\BlogPost'
+      ]);
       $response = $this->get('/posts');
       $response->assertSeeText('3 comments');
     }

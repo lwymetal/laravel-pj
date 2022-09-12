@@ -3,6 +3,9 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Auth\Access\AuthorizationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -33,8 +36,14 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
+
         $this->reportable(function (Throwable $e) {
+          if ($e instanceof ModelNotFoundException) {
+            return Route::respondWithRoute('api.fallback');
+          }
+          if ($e instanceof AuthorizationException) {
             //
+          }
         });
     }
 }
