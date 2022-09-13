@@ -7,11 +7,61 @@
 // Bootstrap
 @import '~bootstrap/scss/bootstrap';
 
+$assetPath :"/images";
+
+body {
+  background-image: url(#{$assetPath}/night-forest.jpeg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  opacity: 0.9;
+}
+
+form {
+  margin: auto;
+  max-width: 600px;
+  padding: 1rem 2rem;
+  width: 100%;
+}
+
 .badge-lg {
-  font-size: 1rem;
+  font-size: 0.9rem;
+}
+
+.bg-black {
+  background-color: #000;
 }
 
 .avatar {
   width: 128px;
   height: 128px;
+}
+
+.container {
+  background-color: #111522;
+  border-radius: 1rem;
+  color: #fff;
+  padding: 1rem;
+}
+
+.form-clear {
+  max-width: unset;
+  padding: unset;
+}
+
+.form-group:last-of-type {
+  margin-bottom: 2.5rem;
+}
+
+.link-dark {
+  color: #212529;
+}
+
+.link-dark:hover {
+  color: #515a5f;
+}
+
+.list-group-item {
+  border-color: white;
+  opacity: 0.9;
 }

@@ -26,7 +26,7 @@
 {{ trans_choice('messages.comments', $post->comments_count) }}
 </p>
 
-<div class="mb-3">
+<div class="mb-4">
   @cannot('update', $post)
   <input type="submit" class="btn btn-primary" value="Edit" disabled>
   @endcannot

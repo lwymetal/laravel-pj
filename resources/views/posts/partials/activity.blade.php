@@ -7,8 +7,8 @@
     @endslot
     @slot('items')
       @foreach ($mostCommented as $mc)
-        <li class="list-group-item">
-          <a href="{{ route('posts.show', ['post' => $mc->id]) }}">
+        <li class="list-group-item list-group-item-dark">
+          <a class="link-dark" href="{{ route('posts.show', ['post' => $mc->id]) }}">
             {{ $mc->title }}
           </a>
         </li>

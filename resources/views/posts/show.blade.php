@@ -14,7 +14,7 @@
       <h1>
     @endif
       {{ $post->title }} 
-    @component('components.badge', ['type' => 'success', 'show' => (now()->diffInMinutes($post->created_at) < 999)])
+    @component('components.badge', ['type' => 'dark', 'show' => (now()->diffInMinutes($post->created_at) < 999)])
       New
     @endcomponent
     @if ($post->image)
